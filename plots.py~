@@ -1,0 +1,220 @@
+from app.models import *
+from app.common import *
+import plotly
+from plotly.graph_objs import Bar,Scatter, Layout,Box
+import shutil
+from collections import OrderedDict
+from helpers import differencing
+
+def box_plot(dates,date_type):
+    n = len(dates)
+    dates.sort()
+    month_seperators = [month[0] for month in prepare_for_timeseries(dates,fidelity="month")]
+    timeseries = prepare_for_timeseries(dates,fidelity="day")
+    data = []
+    for month_seperator in month_seperators:
+        tmp = []
+        for elem in timeseries:
+            if elem[0].year == month_seperator.year and elem[0].month == month_seperator.month:
+                tmp.append(elem[1])
+        data.append(Box(y=tmp,name=str(month_seperator.year)+"-"+str(month_seperator.month)))        
+    plotly.offline.plot({
+        "data":data
+        ,"layout":Layout(
+          title=date_type+" per month over time showing the distribution of cases over the month; number of observations="+str(n)
+            )
+        })
+    shutil.move("temp-plot.html","app/templates/"+date_type+"_hilo_analysis.html")
+
+def box_plot(dates,date_type):
+    n = len(dates)
+    dates.sort()
+    month_seperators = [month[0] for month in prepare_for_timeseries(dates,fidelity="month")]
+    timeseries = prepare_for_timeseries(dates,fidelity="day")
+    data = []
+    for month_seperator in month_seperators:
+        tmp = []
+        for elem in timeseries:
+            if elem[0].year == month_seperator.year and elem[0].month == month_seperator.month:
+                tmp.append(elem[1])
+        data.append(Box(y=tmp,name=str(month_seperator.year)+"-"+str(month_seperator.month)))        
+    plotly.offline.plot({
+        "data":data
+        ,"layout":Layout(
+          title=date_type+" per month over time showing the distribution of cases over the month; number of observations="+str(n)
+            )
+        })
+    shutil.move("temp-plot.html","app/templates/"+date_type+"_hilo_analysis.html")
+
+
+def bar_chart_plot(box_sizes):
+    n = sum([elem[1] for elem in box_sizes])
+    plotly.offline.plot({
+        "data":[Bar(x=[elem[0] for elem in box_sizes],y=[elem[1] for elem in box_sizes])]
+        ,"layout":Layout(
+            title="form9 - form8, frequency; number of observations="+str(n)
+        )
+    })
+    shutil.move("temp-plot.html","app/templates/from8_form9_diff_frequency_analysis.html")
+
+
+def size_of_boxes(timeseries):
+    dates = [elem[0] for elem in timeseries]
+    month_seperators = [month[0] for month in prepare_for_timeseries(dates,fidelity="month")]
+    data = []
+    for month_seperator in month_seperators:
+        tmp = []
+        for elem in timeseries:
+            if elem[0].year == month_seperator.year and elem[0].month == month_seperator.month:
+                tmp.append(elem[1])
+        data.append( [str(month_seperator.year)+"-"+str(month_seperator.month),len(tmp)] )
+    return data
+
+def differencing_box_plot(timeseries,name,color):
+    dates = [elem[0] for elem in timeseries]
+    month_seperators = [month[0] for month in prepare_for_timeseries(dates,fidelity="month")]
+    data = []
+    for month_seperator in month_seperators:
+        tmp = []
+        for elem in timeseries:
+            if elem[0].year == month_seperator.year and elem[0].month == month_seperator.month:
+                tmp.append(elem[1])
+        data.append(
+            Box(
+                y=tmp,
+                name=str(month_seperator.year)+"-"+str(month_seperator.month),
+                marker=dict(color=color,),
+                boxpoints=name
+            )
+        )
+    return data
+        
+def prepare_for_box_plot(dates,name,color):
+    dates.sort()
+    month_seperators = [month[0] for month in prepare_for_timeseries(dates,fidelity="month")]
+    timeseries = prepare_for_timeseries(dates,fidelity="day")
+    data = []
+    for month_seperator in month_seperators:
+        tmp = []
+        for elem in timeseries:
+            if elem[0].year == month_seperator.year and elem[0].month == month_seperator.month:
+                tmp.append(elem[1])
+        data.append(
+            Box(
+                y=tmp,
+                name=str(month_seperator.year)+"-"+str(month_seperator.month),
+                marker=dict(color=color,),
+                boxpoints=name
+            )
+        )
+    return data
+
+def plot_box(data,n):
+    plotly.offline.plot({
+        "data":data
+        ,"layout":Layout(
+            title="form9 - form8; number of observations="+str(n)
+        )
+    })
+    shutil.move("temp-plot.html","app/templates/from8_form9_diff_hilo_analysis.html")
+
+def box_plot_all(date_ranges,date_types):
+    data = []
+    dicter = {
+        "form8":'rgb(0, 0, 255)',
+        "form9":"rgb(255,0,0)",
+        "nod":"rgb(0,128,0)"
+    }
+    for ind,date_range in enumerate(date_ranges):
+        data += prepare_for_box_plot(date_range,date_types[ind],dicter[date_types[ind]])
+    n = len(data)
+    date_type = "_".join(date_types)
+    plotly.offline.plot({
+        "data":data
+        ,"layout":Layout(
+            title="form8 - blue, form9 - red, nod - green ; number of observations="+str(n)
+        )
+    })
+    shutil.move("temp-plot.html","app/templates/"+date_type+"_hilo_analysis.html")
+
+def plot_all_barchart():
+    form8_total = len([b for b in Brieff.query.all() if b.bf41stat])
+    form9_total = len([b for b in Brieff.query.all() if b.bfd19 and b.bfd19.year >= 2012])
+    nod_total = len([b for b in Brieff.query.all() if b.bfdnod and b.bfdnod.year >= 2012])
+    brieff_total = Brieff.query.count()
+    x_vals = ["total data","total form8","total form9","total nod"]
+    y_vals = [brieff_total,form8_total,form9_total,nod_total]
+    plotly.offline.plot({
+        "data":[Bar(x=x_vals,y=y_vals)],
+        "layout":Layout(
+            title="Frequency analysis of missing form8,form9 and NOD data"
+        )
+    })
+    shutil.move("temp-plot.html","app/templates/intake_frequency_analsysi.html")
+    
+def plot_all_timeseries(dates,date_types):
+    for_scatter = []
+    for ind,val in enumerate(dates):
+        timeseries = prepare_for_timeseries(val)
+        x_vals = [elem[0] for elem in timeseries]
+        y_vals = [elem[1] for elem in timeseries]
+        for_scatter.append(Scatter(x=x_vals,y=y_vals,name=date_types[ind]))
+    plotly.offline.plot({
+        "data":for_scatter,
+        "layout":Layout(
+            title="Time Series analysis of form8,form9 and NOD form8_observations="+str(len(dates[0]))+" form9_observations="+str(len(dates[1]))+" nod_observations="+str(len(dates[2]))
+        )
+    })
+    shutil.move("temp-plot.html","app/templates/intake_timeseries_analysis.html")
+
+def plot_weekly_timeseries_form8_date(dates):
+    df = prepare_for_timeseries_weekly(dates)
+    x_vals = [elem.to_datetime() for elem in df["to_order"]]
+    y_vals = df["count"].values.tolist()
+    plotly.offline.plot({
+        "data":[Scatter(x=x_vals,y=y_vals,name="form8 date")],
+        "layout":Layout(
+            title="Number of cases certified to the board week over week Time Series analysis"
+        )
+    })
+    shutil.move("temp-plot.html","app/templates/weekly_number_of_cases_certified_timeseries_analysis.html")
+
+def timeseries_plot(dates,date_type):
+    n = len(dates)
+    dates.sort()
+    timeseries = prepare_for_timeseries(dates)
+    x_vals = [elem[0] for elem in timeseries]
+    y_vals = [elem[1] for elem in timeseries]
+    plotly.offline.plot({
+        "data":[
+            Scatter(x=x_vals,y=y_vals,name="form8")
+            ]
+        ,"layout":Layout(
+          title=date_type+" per month over time; number of observations="+str(n)
+            )
+        })
+    shutil.move("temp-plot.html","app/templates/"+date_type+"_frequency_analysis.html")
+
+def main():
+    form8_dates = [b.bf41stat for b in CurrentBrieff.query.filter_by(bfmpro="ADV").all()]
+    plot_weekly_timeseries_form8_date(form8_dates)
+    # timeseries_plot(form8_dates,"form8")
+    # form9_dates = [b.bfd19 for b in CurrentBrieff.query.filter_by(bfmpro="ADV").all() if b.bfd19]
+    # form9_dates = [elem for elem in form9_dates if elem.year >= 2012]
+    # timeseries_plot(form9_dates,"form9")
+    # nod_dates = [b.bfdnod for b in CurrentBrieff.query.filter_by(bfmpro="ADV").all() if b.bfdnod]
+    # nod_dates = [elem for elem in nod_dates if elem.year >= 2012]
+    # timeseries_plot(nod_dates,"nod")
+    # dates = [form8_dates,form9_dates,nod_dates]
+    # types = ["form8","form9","nod"]
+    # plot_all_timeseries(dates,types)
+    # plot_all_barchart()
+    # box_plot_all([form8_dates,form9_dates,nod_dates],["form8","form9","nod"])
+    # box_plot(form8_dates,"form8")
+    # box_plot(form9_dates,"form9")
+    # box_plot(nod_dates,"nod")
+    #timeseries = differencing()
+    #box_sizes = size_of_boxes(timeseries)
+    #bar_chart_plot(box_sizes)
+    # boxes = differencing_box_plot(timeseries,"form9_minus_form8","rgb(0,0,255)")
+    # plot_box(boxes,len(timeseries))
