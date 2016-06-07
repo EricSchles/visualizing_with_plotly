@@ -2,6 +2,24 @@ from datetime import datetime
 import pandas as pd
 from collections import OrderedDict
 
+def order_day_hour(vals):
+    dicter = OrderedDict({})
+    dicter["Monday"] = []
+    dicter["Tuesday"] = []
+    dicter["Wednesday"] = []
+    dicter["Thursday"] = []
+    dicter["Friday"] = []
+    dicter["Saturday"] = []
+    dicter["Sunday"] = []
+    for val in vals:
+        dicter[val[0]].append(val)
+    for day in dicter.keys():
+        dicter[day] = sorted(dicter[day], key=lambda t:t[1])
+    x_vals = []
+    for key in dicter.keys():
+        x_vals += dicter[key]
+    return x_vals
+
 def segment_by_type(values):
     type_one= []
     type_two = []
